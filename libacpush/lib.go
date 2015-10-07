@@ -26,9 +26,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/appc/spec/aci"
-	"github.com/appc/spec/discovery"
-	"github.com/coreos/ioprogress"
+	"github.com/appc/acpush/Godeps/_workspace/src/github.com/appc/spec/aci"
+	"github.com/appc/acpush/Godeps/_workspace/src/github.com/appc/spec/discovery"
+	"github.com/appc/acpush/Godeps/_workspace/src/github.com/coreos/ioprogress"
 )
 
 type initiateDetails struct {

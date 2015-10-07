@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/coreos/rkt/rkt/config"
+	"github.com/appc/acpush/Godeps/_workspace/src/github.com/coreos/rkt/rkt/config"
 
 	"github.com/appc/acpush/libacpush"
 )
