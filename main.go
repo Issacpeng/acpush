@@ -54,7 +54,8 @@ func runACPush(cmd *cobra.Command, args []string) {
 		cmd.Usage()
 		os.Exit(1)
 	}
-
+    fmt.Printf("############## flagSystemConfigDir: %v ##############\r\n", flagSystemConfigDir)
+    fmt.Printf("############## flagLocalConfigDir: %v ##############\r\n", flagLocalConfigDir)
 	conf, err := config.GetConfigFrom(flagSystemConfigDir, flagLocalConfigDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error loading config: %v\n", err)
@@ -71,6 +72,7 @@ func runACPush(cmd *cobra.Command, args []string) {
 			if r.URL == nil {
 				return
 			}
+			fmt.Printf("############## r.URL.Host: %v ##############\r\n", r.URL.Host)
 			headerer, ok := conf.AuthPerHost[r.URL.Host]
 			if !ok {
 				if flagDebug {
@@ -79,6 +81,7 @@ func runACPush(cmd *cobra.Command, args []string) {
 				return
 			}
 			header := headerer.Header()
+			fmt.Printf("############## headerer: %v ##############\r\n", headerer)
 			for k, v := range header {
 				r.Header[k] = append(r.Header[k], v...)
 			}

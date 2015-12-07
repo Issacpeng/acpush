@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"runtime"
+//	"runtime"
 	"strings"
 	"time"
 
@@ -76,6 +76,12 @@ type Uploader struct {
 // Upload performs the upload of the ACI and signature specified in the
 // Uploader struct.
 func (u Uploader) Upload() error {
+	fmt.Printf("############## u.Acipath: %v ##############\r\n", u.Acipath)
+	fmt.Printf("############## u.Ascpath: %v ##############\r\n", u.Ascpath)
+	fmt.Printf("############## u.Uri: %v ##############\r\n", u.Uri)
+	fmt.Printf("############## u.Insecure: %v ##############\r\n", u.Insecure)
+	fmt.Printf("############## u.Debug: %v ##############\r\n", u.Debug)
+	fmt.Printf("############## u.SetHTTPHeaders: %v ##############\r\n", u.SetHTTPHeaders)
 	acifile, err := os.Open(u.Acipath)
 	if err != nil {
 		return err
@@ -92,11 +98,12 @@ func (u Uploader) Upload() error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("############## manifest: %v ##############\r\n", manifest)
 	app, err := discovery.NewAppFromString(u.Uri)
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf("############## app: %v ##############\r\n", app)
 	if _, ok := app.Labels[archLabelName]; !ok {
 		arch, ok := manifest.Labels.Get(archLabelName)
 		if !ok {
@@ -116,7 +123,7 @@ func (u Uploader) Upload() error {
 	if _, ok := app.Labels[extLabelName]; !ok {
 		app.Labels[extLabelName] = strings.Trim(schema.ACIExtension, ".")
 	}
-
+	fmt.Println("############## manifest check ok! ##############\r\n")
 	// Just to make sure that we start reading from the front of the file in
 	// case aci.ManifestFromImage changed the cursor into the file.
 	_, err = acifile.Seek(0, 0)
@@ -128,12 +135,13 @@ func (u Uploader) Upload() error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("############## acifile check ok!##############\r\n")
 
 	initurl, err := u.getInitiationURL(app)
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf("############## initurl: %v ##############\r\n", initurl)
 	initDeets, err := u.initiateUpload(initurl)
 	if err != nil {
 		return err
@@ -145,7 +153,7 @@ func (u Uploader) Upload() error {
 		r     io.Reader
 		draw  bool
 	}
-
+	fmt.Printf("############## initDeets: %v ##############\r\n", initDeets)
 	for _, part := range []partToUpload{
 		partToUpload{"manifest", initDeets.ManifestURL, bytes.NewReader(manblob), false},
 		partToUpload{"signature", initDeets.SignatureURL, ascfile, true},
@@ -174,6 +182,7 @@ func (u Uploader) getInitiationURL(app *discovery.App) (string, error) {
 	if u.Debug {
 		stderr("searching for push endpoint via meta discovery")
 	}
+	fmt.Println("############## DiscoverEndpoints ##############\r\n")
 	eps, attempts, err := discovery.DiscoverEndpoints(*app, u.Insecure)
 	if u.Debug {
 		for _, a := range attempts {
@@ -190,11 +199,15 @@ func (u Uploader) getInitiationURL(app *discovery.App) (string, error) {
 	if u.Debug {
 		stderr("push endpoint found: %s", eps.ACIPushEndpoints[0])
 	}
-
+	fmt.Println("############## DiscoverEndpoints OK! ##############\r\n")
+	fmt.Printf("############## eps.ACIEndpoints:  ##############\r\n",eps.ACIEndpoints[0])
+	fmt.Printf("############## eps.Keys:  ##############\r\n",eps.Keys)
+	fmt.Printf("############## eps.ACIPushEndpoints:  ##############\r\n",eps.ACIPushEndpoints[0])
 	return eps.ACIPushEndpoints[0], nil
 }
 
 func (u Uploader) initiateUpload(initurl string) (*initiateDetails, error) {
+	fmt.Println("############## initiateUpload ##############\r\n")
 	if u.Debug {
 		stderr("initiating upload")
 	}
@@ -203,26 +216,36 @@ func (u Uploader) initiateUpload(initurl string) (*initiateDetails, error) {
 		return nil, err
 	}
 	defer resp.Close()
-
+	fmt.Printf("############## upload initiated-resp: %v ##############\r\n", resp)
 	respblob, err := ioutil.ReadAll(resp)
 	if err != nil {
 		return nil, err
 	}
-
+/*
+	if err := ioutil.WriteFile("./output3.txt", []byte(respblob), 0777); err != nil {
+	fmt.Println("WriteFile layerfile fail")
+	return nil, err
+	}
+*/
 	deets := &initiateDetails{}
 	err = json.Unmarshal(respblob, deets)
-
+	fmt.Printf("############## upload initiated-deets: %v ##############\r\n", deets)
 	if u.Debug {
 		stderr("upload initiated")
 		stderr(" - manifest endpoint: %s", deets.ManifestURL)
 		stderr(" - signature endpoint: %s", deets.SignatureURL)
 		stderr(" - aci endpoint: %s", deets.ACIURL)
 	}
-
+	fmt.Printf("##############  upload initiated- manifest endpoint: %s ##############\r\n", deets.ManifestURL)
+	fmt.Printf("##############  upload initiated- manifest endpoint: %s ##############\r\n", deets.SignatureURL)
+	fmt.Printf("##############  upload initiated- manifest endpoint: %s ##############\r\n", deets.ACIURL)
 	return deets, err
 }
 
 func (u Uploader) uploadPart(url string, body io.Reader, draw bool, label string) error {
+	fmt.Printf("############## uploadPart-url: %v ##############\r\n", url)
+	fmt.Printf("############## uploadPart-draw: %v ##############\r\n", draw)
+	fmt.Printf("############## uploadPart-label: %v ##############\r\n", label)
 	resp, err := u.performRequest("PUT", url, body, draw, label)
 	if err != nil {
 		return err
@@ -232,6 +255,7 @@ func (u Uploader) uploadPart(url string, body io.Reader, draw bool, label string
 }
 
 func (u Uploader) reportSuccess(url string) error {
+	fmt.Println("############## reportSuccess ##############\r\n")
 	respblob, err := json.Marshal(completeMsg{true, "", ""})
 	if err != nil {
 		return err
@@ -240,6 +264,7 @@ func (u Uploader) reportSuccess(url string) error {
 }
 
 func (u Uploader) reportFailure(url string, reason string) error {
+	fmt.Println("############## reportFailure ##############\r\n")
 	respblob, err := json.Marshal(completeMsg{false, reason, ""})
 	if err != nil {
 		return err
@@ -248,6 +273,8 @@ func (u Uploader) reportFailure(url string, reason string) error {
 }
 
 func (u Uploader) complete(url string, blob []byte) error {
+	fmt.Println("############## complete ##############\r\n")
+	fmt.Printf("############## complete-url: %v ##############\r\n", url)
 	resp, err := u.performRequest("POST", url, bytes.NewReader(blob), false, "")
 	if err != nil {
 		return err
@@ -264,7 +291,7 @@ func (u Uploader) complete(url string, blob []byte) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf("############## complete-reply: %v ##############\r\n", reply)
 	if !reply.Success {
 		return fmt.Errorf("%s", reply.ServerReason)
 	}
